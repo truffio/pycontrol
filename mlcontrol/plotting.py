@@ -39,8 +39,8 @@ def learning_curve(history: list, title: str = "Learning curve") -> go.Figure:
     it = list(range(1, len(history) + 1))
     best = [h["best_cost"] for h in history]
     mean = [h["mean_cost"] for h in history]
-    fig.add_trace(line(it, mean, "Population mean", REFERENCE, dash="dot"))
-    fig.add_trace(line(it, best, "Best / current", LEARNED))
+    fig.add_trace(line(it, mean, "Population mean (training batch)", REFERENCE, dash="dot"))
+    fig.add_trace(line(it, best, "Best candidate (training batch)", LEARNED))
     val = [(i, h["validation_cost"]) for i, h in zip(it, history) if h.get("validation_cost") is not None]
     if val:
         fig.add_trace(go.Scatter(x=[v[0] for v in val], y=[v[1] for v in val], mode="lines+markers",
@@ -48,9 +48,14 @@ def learning_curve(history: list, title: str = "Learning curve") -> go.Figure:
                                  line=dict(color=THIRD, width=2), marker=dict(size=8)))
     # Mark stage boundaries (e.g. curriculum or pre-training -> fine-tuning).
     stages = [h.get("stage", "") for h in history]
-    for i in range(1, len(stages)):
-        if stages[i] != stages[i - 1]:
+    n_labels = 0
+    for i in range(len(stages)):
+        if len(set(stages)) > 1 and (i == 0 or stages[i] != stages[i - 1]):
+            # Stagger the labels vertically so close stage boundaries stay readable.
             fig.add_vline(x=i + 0.5, line=dict(color=REFERENCE, width=1, dash="dash"),
-                          annotation_text=stages[i], annotation_position="top left")
+                          annotation=dict(text=stages[i], yshift=-16 * n_labels, xanchor="left",
+                                          font=dict(size=11)),
+                          annotation_position="top right")
+            n_labels += 1
     fig.update_yaxes(type="log")
     return style(fig, title, "Iteration", "Cost (log scale)")

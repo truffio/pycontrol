@@ -190,6 +190,19 @@ about the upright equilibrium, with the same force saturation.
         Param("seed", "Random seed", 0, 0, 9999, 1, "learning"),
     ]
 
+    def describe_plant(self, cfg):
+        sys = cartpole_nlsys(cfg)
+        lin = ct.linearize(sys, np.zeros(4), np.zeros(1))
+        with np.printoptions(precision=3, suppress=True):
+            return "\n".join([
+                "\n".join(ln for ln in str(sys).splitlines() if not ln.startswith(("Update:", "Output:"))),
+                "Cart-pole dynamics: nonlinear rigid-body model (see dynamics())", "",
+                "Linearised about upright (control.linearize):",
+                f"A =\n{lin.A}", f"B =\n{lin.B}",
+                f"open-loop poles: {np.round(lin.poles(), 3)}",
+                f"LQR gain K = {np.round(lqr_gain(cfg), 2)}",
+            ])
+
     # ------------------------------------------------------------------ train
     def _train(self, cfg, callback):
         rng = np.random.default_rng(int(cfg["seed"]))
@@ -257,7 +270,7 @@ about the upright equilibrium, with the same force saturation.
         if n_es > 0:
             res = evolution_strategies(es_cost, theta_bc, n_iter=n_es, pop_size=int(cfg["es_pop"]),
                                        sigma=cfg["es_sigma"], lr=cfg["es_lr"], rng=rng,
-                                       callback=es_callback, stage="Evolution Strategies",
+                                       callback=es_callback, stage="Evolution Strategies (growing initial-state range)",
                                        record_params=True)
             for h in res.history:
                 if h["iteration"] in validations:
@@ -408,7 +421,7 @@ about the upright equilibrium, with the same force saturation.
         stride = max(1, int(round(0.05 / cfg["dt"])))
         idx = list(range(0, len(t), stride))
         L = 2 * cfg["l"]
-        rows = {"learned": 1.0, "baseline": -1.0}           # vertical offset of each track
+        rows = {"learned": 1.2, "baseline": -1.2}           # vertical offset of each track
 
         def shapes(i):
             data = []
@@ -419,7 +432,7 @@ about the upright equilibrium, with the same force saturation.
                                        y=[y0 - 0.1, y0 - 0.1, y0 + 0.1, y0 + 0.1, y0 - 0.1],
                                        fill="toself", mode="lines", line=dict(color=colors[k], width=2),
                                        name=labels[k], showlegend=True))
-                data.append(go.Scatter(x=[x, x + L * np.sin(th)], y=[y0, y0 + L * np.cos(th) * 0.8],
+                data.append(go.Scatter(x=[x, x + L * np.sin(th)], y=[y0, y0 + L * np.cos(th)],
                                        mode="lines+markers", line=dict(color=colors[k], width=4),
                                        marker=dict(size=[4, 10]), showlegend=False))
             return data
@@ -431,7 +444,7 @@ about the upright equilibrium, with the same force saturation.
                           line=dict(color=P.REFERENCE, width=1))
         fig.update_layout(
             xaxis=dict(range=[-cfg["x_limit"] - 0.3, cfg["x_limit"] + 0.3], title="Cart position [m]"),
-            yaxis=dict(range=[-1.4, 2.4], visible=False, scaleanchor="x"),
+            yaxis=dict(range=[-2.6, 2.4], visible=False, scaleanchor="x"),
             updatemenus=[dict(type="buttons", showactive=False, x=0, y=-0.15, xanchor="left",
                               buttons=[dict(label="▶ Play", method="animate",
                                             args=[None, dict(frame=dict(duration=50, redraw=True),

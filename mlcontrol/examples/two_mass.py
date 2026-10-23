@@ -200,6 +200,18 @@ actuator lag, the uncertainty and the force limit.
         Param("seed", "Random seed", 0, 0, 9999, 1, "learning"),
     ]
 
+    def describe_plant(self, cfg):
+        design = plant_ss(design_model_params(cfg))
+        true = plant_ss(nominal_params(cfg))
+        wn = np.sqrt(cfg["k"] * (1 / cfg["m1"] + 1 / cfg["m2"]))
+        with np.printoptions(precision=3, suppress=True):
+            return "\n".join([
+                "Design model (used by LQR), states [x1, v1, x2, v2], inputs [u, d]:",
+                str(design), "",
+                f"Simulated plant adds actuator lag tau = {cfg['tau']} s -> {true.nstates} states.",
+                f"Resonance ~ {wn:.1f} rad/s, open-loop poles: {np.round(design.poles(), 2)}",
+            ])
+
     def _train(self, cfg, callback):
         rng = np.random.default_rng(int(cfg["seed"]))
         n_plants = int(cfg["n_plants"])
@@ -248,8 +260,9 @@ actuator lag, the uncertainty and the force limit.
         for sgn in (1, -1):
             fig.add_hline(y=sgn * cfg["F_max"], line=dict(color=P.REFERENCE, width=1, dash="dash"),
                           row=2, col=1)
-        fig.add_vline(x=cfg["T_final"] / 2, line=dict(color=P.REFERENCE, width=1, dash="dot"),
-                      annotation_text="load disturbance", annotation_position="top right")
+        fig.add_vline(x=cfg["T_final"] / 2, line=dict(color=P.REFERENCE, width=1, dash="dot"))
+        fig.add_annotation(x=cfg["T_final"] / 2, y=1, yref="y domain", xanchor="left", yanchor="top",
+                           text=" load disturbance", showarrow=False)
         P.style(fig, "Nominal plant: load position and control force", height=520)
         fig.update_yaxes(title_text="Load position [m]", row=1, col=1)
         fig.update_yaxes(title_text="Force [N]", row=2, col=1)
@@ -269,12 +282,12 @@ actuator lag, the uncertainty and the force limit.
         for col, k in enumerate(("learned", "baseline"), start=1):
             for i, (t, y, u, poles) in enumerate(ens[k]):
                 y = np.clip(y, -cfg["r"], 3 * cfg["r"])      # keep unstable runs on-screen
-                fig.add_trace(P.line(t, y, labels[k], colors[k], width=1, showlegend=i == 0,
+                fig.add_trace(P.line(t, y, labels[k], colors[k], width=1, showlegend=False,
                                      opacity=0.45, hoverinfo="skip"), 1, col)
             fig.add_trace(P.line(t, np.full_like(t, cfg["r"]), "Reference", P.REFERENCE,
-                                 dash="dash", showlegend=col == 1), 1, col)
-        P.style(fig, f"Load position on {len(ens['learned'])} random plants "
-                     f"(±{cfg['uncertainty']:.0%} mass/stiffness, damping ×0.5-2)", height=400)
+                                 dash="dash", showlegend=False), 1, col)
+        P.style(fig, f"Load position on {len(ens['learned'])} random plants not seen in training", height=420)
+        fig.update_layout(margin=dict(t=80))
         fig.update_layout(hovermode="closest")
         fig.update_xaxes(title_text="Time [s]")
         fig.update_yaxes(title_text="Load position [m]", col=1)
@@ -300,6 +313,8 @@ actuator lag, the uncertainty and the force limit.
             fig.add_trace(go.Box(y=costs, name=labels[k], marker_color=colors[k],
                                  boxpoints="all", jitter=0.4, pointpos=0))
         fig.update_yaxes(type="log")
+        fig.add_hline(y=UNSTABLE_COST, line=dict(color=P.REFERENCE, width=1, dash="dash"),
+                      annotation_text="unstable closed loop", annotation_position="bottom right")
         P.style(fig, "Per-plant cost on the test set (lower is better)", "", "Cost (log scale)")
         fig.update_layout(hovermode="closest", showlegend=False)
         return fig
@@ -314,7 +329,7 @@ actuator lag, the uncertainty and the force limit.
             stable = [np.all(e[3].real < 0) for e in ens[k]]
             peak_u = [np.abs(e[2]).max() for e in ens[k]]
             rows[k] = {
-                "Gains [k1 k2 k3 k4 ki]": " ".join(f"{v:.3g}" for v in g),
+                **{f"Gain {n}": float(v) for n, v in zip(("k1 (x1)", "k2 (v1)", "k3 (x2)", "k4 (v2)", "ki"), g)},
                 "Nominal settling time [s]": info["SettlingTime"],
                 "Nominal overshoot [%]": info["Overshoot"],
                 "Nominal peak force [N]": float(np.abs(u).max()),

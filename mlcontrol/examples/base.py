@@ -84,6 +84,10 @@ class Example(ABC):
         result.elapsed_s = time.perf_counter() - t0
         return result
 
+    def describe_plant(self, cfg: dict) -> str:
+        """Text representation of the python-control plant model for display."""
+        return ""
+
     @abstractmethod
     def _train(self, cfg: dict, callback: Callback) -> TrainResult:
         """Run the learning algorithm and return the learned controller."""
