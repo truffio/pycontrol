@@ -28,6 +28,7 @@ class IterationInfo:
     mean_cost: float
     params: np.ndarray
     stage: str = ""
+    validation_cost: Optional[float] = None    # cost on a fixed held-out set, if computed
 
 
 @dataclass
