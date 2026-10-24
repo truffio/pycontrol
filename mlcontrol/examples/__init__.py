@@ -18,3 +18,4 @@ __all__ = ["EXAMPLES", "Evaluation", "Example", "Param", "TrainResult", "get_exa
 
 # Importing the modules registers the examples (order = display order).
 from mlcontrol.examples import dc_motor  # noqa: E402,F401
+from mlcontrol.examples import two_mass  # noqa: E402,F401
