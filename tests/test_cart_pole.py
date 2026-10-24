@@ -40,7 +40,7 @@ def test_two_stage_training_improves_on_imitation():
     ex = get_example("cart_pole")
     r = ex.train({"bc_steps": 600, "es_iter": 30, "es_pop": 8, "es_episodes": 12, "T_final": 4.0})
     stages = {h["stage"] for h in r.history}
-    assert stages == {"Imitation (behaviour cloning)", "Evolution Strategies"}
+    assert stages == {"Imitation (behaviour cloning)", "Evolution Strategies (growing initial-state range)"}
     assert r.controller["validation_cost"] <= r.extras["bc_validation_cost"]
     ev = ex.evaluate(r)
     assert {"Learning curve", "Time response", "Region of attraction", "Animation"} <= set(ev.figures)

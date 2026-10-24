@@ -120,6 +120,9 @@ speed of response without regard to the voltage limit.
     lower = np.array([-1.0, -1.0, -3.0])
     upper = np.array([3.0, 3.0, 2.0])
 
+    def describe_plant(self, cfg):
+        return "P(s) = speed / voltage\n" + str(plant_from_cfg(cfg))
+
     def _train(self, cfg, callback):
         plant = plant_from_cfg(cfg)
 
@@ -184,13 +187,14 @@ speed of response without regard to the voltage limit.
         u_peak = max(np.abs(s[2]).max() for s in sims.values())
         if u_peak > 4 * cfg["V_max"]:
             fig.update_yaxes(range=[-1.5 * cfg["V_max"], 4 * cfg["V_max"]])
-            fig.add_annotation(x=t[0], y=4 * cfg["V_max"], xanchor="left", yanchor="top",
+            fig.add_annotation(x=t[-1], y=4 * cfg["V_max"], xanchor="right", yanchor="top",
                                showarrow=False,
                                text=f"axis clipped - peak voltage {u_peak:.0f} V")
         figs["Control voltage"] = P.style(fig, "Control signal (armature voltage)",
                                           "Time [s]", "Voltage [V]")
 
         figs["Loop Bode plot"] = self._bode(plant, result, labels, colors)
+        figs["Gain evolution"] = figs.pop("Gain evolution")          # show it last
 
         metrics = self._metrics(plant, result, sims)
         return Evaluation(metrics=metrics, figures=figs)
