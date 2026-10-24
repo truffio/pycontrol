@@ -15,3 +15,6 @@ def get_example(key: str) -> Example:
 
 
 __all__ = ["EXAMPLES", "Evaluation", "Example", "Param", "TrainResult", "get_example", "register"]
+
+# Importing the modules registers the examples (order = display order).
+from mlcontrol.examples import dc_motor  # noqa: E402,F401
