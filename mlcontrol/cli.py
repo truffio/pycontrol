@@ -18,6 +18,8 @@ def _parse_overrides(pairs):
 
 
 def main(argv=None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(prog="mlcontrol", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="list available examples")

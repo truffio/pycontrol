@@ -41,6 +41,11 @@ def learning_curve(history: list, title: str = "Learning curve") -> go.Figure:
     mean = [h["mean_cost"] for h in history]
     fig.add_trace(line(it, mean, "Population mean", REFERENCE, dash="dot"))
     fig.add_trace(line(it, best, "Best / current", LEARNED))
+    val = [(i, h["validation_cost"]) for i, h in zip(it, history) if h.get("validation_cost") is not None]
+    if val:
+        fig.add_trace(go.Scatter(x=[v[0] for v in val], y=[v[1] for v in val], mode="lines+markers",
+                                 name="Validation (fixed held-out set)",
+                                 line=dict(color=THIRD, width=2), marker=dict(size=8)))
     # Mark stage boundaries (e.g. curriculum or pre-training -> fine-tuning).
     stages = [h.get("stage", "") for h in history]
     for i in range(1, len(stages)):
